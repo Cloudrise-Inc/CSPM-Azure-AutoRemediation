@@ -32,7 +32,7 @@ def main(mytimer: func.TimerRequest, msg: func.Out[typing.List[str]]) -> str:
         violationsResourceID.append(data.get("resource_id"))
     if violationsResourceID:
         msg.set(violationsResourceID)
-        logging.info(f"Enqueued violation created resource ID's to the Storage Queue. The violation created resources are {violationsResourceID}")
+        logging.info(f"Violated Resource ids enqueued to the remediation Storage Queue. The resources with violation are {violationsResourceID}")
     logging.info(f"No violation for the rule {rule_name} on tenant {tenant_name}")
 
 def get_status(tenant_name, rule_name, token):
