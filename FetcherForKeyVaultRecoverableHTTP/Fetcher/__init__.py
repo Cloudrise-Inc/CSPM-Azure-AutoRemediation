@@ -14,6 +14,9 @@ from io import BytesIO
 import azure.functions as func
 from azure.storage.blob import BlobClient, BlobServiceClient, ContainerClient
 from azure.core.exceptions import ResourceExistsError, ResourceNotFoundError
+from azure.storage.queue import QueueClient
+
+
 
 CLOUD_PROVIDER = "azure"
 STATUS = 'Failed'
@@ -37,31 +40,38 @@ azure_logger.addHandler(handler)
 handler = logging.StreamHandler(stream=sys.stdout)
 logger.addHandler(handler)
 
-def main(req: func.HttpRequest, msg: func.Out[List[str]] ) -> str:
+# Getting required data from environment variable, raising an error when not configured
+tenant_name = os.environ['tenant_name']
+token = os.environ['token']
+security_results_access_key = os.environ['DLP_SCAN_RESULT_STORAGE']
+timestamp_container = os.environ['TIMESTAMP_CONTAINER']
+
+def main(req: func.HttpRequest ) -> str:
     
     logger.info('Python HTTP trigger function processed a request.')
 
-    # Getting required data from environment variable, raising an error when not configured
-    tenant_name = os.environ['tenant_name']
-    action_name = os.environ['action']
-    token = os.environ['token']
-    rule_name = os.environ['rule_name']
-    security_results_access_key = os.environ['SecurityAssessmentResultsStorage']
+    body = req.get_json()
 
+    action_name = body['action']
+    policies = body['policies']
+    profiles = body['profiles']
+    rules = body['rules']
+
+    logging.info(f"Calling Netskope API for DLP scan alerts for {action_name}")
+
+    results_queue_name = f'dlp-scan-{action_name}-results'
+
+    timestamp_file_name = f'last_timestamp_{action_name}.txt'
+    
     blob_client =  BlobServiceClient.from_connection_string(security_results_access_key)
 
-    container_name = f'timestamp-{uuid.uuid4()}'
-
-    file_name = f'last_timestamp_{action_name}.txt'
-
-    # start_time = get_timestamp(blob_client, container_name, action_name)
-    start_time = 1
+    start_time = get_timestamp(blob_client, timestamp_container, timestamp_file_name) + 1
     last_timestamp = start_time
 
     page = 0
 
     results = get_alerts(
-        tenant_name, rule_name, token, str(PAGE_SIZE), str(page * PAGE_SIZE), start_time)
+        action_name, token, str(PAGE_SIZE), str(page * PAGE_SIZE), start_time)
 
     logger.info(f'results: {results}')
         
@@ -73,52 +83,51 @@ def main(req: func.HttpRequest, msg: func.Out[List[str]] ) -> str:
 
         for data in results:
 
+            policy = data['policy']
+            profile = data['dlp_profile']
+            rule = data['dlp_rule']
+
             logger.info(f'data: {data}')
 
-            logger.info(
-                f"Got matching alert for action: {data['action']} "
-                f"on instance: {data['instance']} "
-                f"for resource_id: {data['_id']} "
-                f"with (policy_name: {data['policy']}, profile_name: {data['dlp_profile']}, rule_name: {data['dlp_rule']})"
-            )
+            if policy in policies or profile in profiles or rule in rules:
+                logger.info(
+                    f"Got matching alert for action: {data['action']} "
+                    f"on instance: {data['instance']} "
+                    f"for resource_id: {data['_id']} "
+                    f"with (policy_name: {data['policy']}, profile_name: {data['dlp_profile']}, rule_name: {data['dlp_rule']})"
+                )
 
-            violations_results.append(f"{data['_id']}, {data['policy']}, {data['dlp_profile']}, {data['dlp_rule']}")
+                violations_results.append(f"{data['url']}, {data['policy']}, {data['dlp_profile']}, {data['dlp_rule']}")
 
-            if int(data['timestamp']) > int(last_timestamp):
-                last_timestamp = int(data['timestamp'])
+                count += 1
 
-        if len(violations_results) > 0:
+                if int(data['timestamp']) > int(last_timestamp):
+                    last_timestamp = int(data['timestamp'])
 
-            logger.info(f'violationsResourceID List: {violations_results}')
-
-            msg.set(violations_results)
-
-            count += 1
-
-            page = page + 1
-
-            logger.info(f"Violated Resource ids enqueued to the remediation Storage Queue. The resources with violation are {violations_results}")
-        else:
-            return f"No violation for the rule {rule_name} on tenant {tenant_name}"
+        page = page + 1
 
         results = get_alerts(tenant_name, data['dlp_rule'], token, str(PAGE_SIZE), str(page * PAGE_SIZE), start_time)
         logger.debug(results)
 
     # put_results(results, bucket, f"{action_name}/{file_name}")
     if count > 0:
-        put_timestamp(blob_client, container_name, file_name, last_timestamp)
+        put_timestamp(blob_client, timestamp_container, timestamp_file_name, last_timestamp)
+
+    if len(violations_results) > 0:
+
+        logger.info(f'violationsResourceID List: {violations_results}')
+
+        put_results(violations_results, results_queue_name)
+
+        logger.info(f"Violated Resource ids enqueued to the remediation Storage Queue. The resources with violation are {violations_results}")
+    else:
+        return f"No violation for the rule {rule_name} on tenant {tenant_name}"
 
     return f'Got {count} total alerts for the action {action_name}'
 
-
-
-
-def get_alerts(tenant_name, rule_name, token, limit, skip, starttime):
+def get_alerts(token, limit, skip, start_time):
 
     now = int(time())
-
-    logging.info("Going to get the security assessment violations from the latest scan for the " +
-                 tenant_name + " tenant and the rule is " + rule_name)
 
     get_url = f"https://{tenant_name}/api/v1/alerts"
 
@@ -126,14 +135,12 @@ def get_alerts(tenant_name, rule_name, token, limit, skip, starttime):
         "token": token,
         "type": "DLP",
         "acked": "false",
-        "starttime": starttime,
+        "starttime": start_time,
         "endtime": now,
         "query": "app like 'Microsoft Azure'",
         "limit": limit,
         "skip": skip
     }
-
-    logging.info(f"Calling Netskope API for DLP scan alerts for {rule_name}")
 
     res = requests.get(get_url, params=payload)
 
@@ -173,8 +180,20 @@ def put_timestamp(client, container_name, file_name, timestamp):
 
     blob_client.upload_blob(data, overwrite=True)
 
-    
+def put_results(results, queue_name):
 
+    client = QueueClient.from_connection_string(security_results_access_key, queue_name)
+    try:
+        client.create_queue()
+    except ResourceExistsError: 
+        logging.info(f'queue {queue_name} already exists')
+
+    for result in results:
+        client.send_message(result)
+
+
+    
+#  DefaultEndpointsProtocol=https;AccountName=securityresultz;AccountKey=qjtYYRu458vnFe/x5OkpxKdzHnbH11TsHFXHw/EO9jvaX5Z2AlprEpg61WtxIpmC60N38KxRhM7b+AStRIdn4w==;EndpointSuffix=core.windows.net
 
 
 

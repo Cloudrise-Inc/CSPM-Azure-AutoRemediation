@@ -6,7 +6,7 @@
       "type": "queueTrigger",
       "direction": "in",
       "queueName": "keyvaultrecoverable",
-      "connection": "SecurityAssessmentResultsStorage"
+      "connection": "DLP_SCAN_RESULT_STORAGE"
     }
   ]
 }
