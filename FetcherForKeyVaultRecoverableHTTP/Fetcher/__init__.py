@@ -2,16 +2,18 @@ from asyncio import exceptions
 import os
 import sys
 import requests
-from requests.exceptions import HTTPError
 import logging
+import uuid
+import datetime
+
+from requests.exceptions import HTTPError
 from typing import List
 from time import time
-import uuid
-
-from operator import attrgetter
+from io import BytesIO
 
 import azure.functions as func
 from azure.storage.blob import BlobClient, BlobServiceClient, ContainerClient
+from azure.core.exceptions import ResourceExistsError, ResourceNotFoundError
 
 CLOUD_PROVIDER = "azure"
 STATUS = 'Failed'
@@ -44,20 +46,19 @@ def main(req: func.HttpRequest, msg: func.Out[List[str]] ) -> str:
     action_name = os.environ['action']
     token = os.environ['token']
     rule_name = os.environ['rule_name']
-    account_url = os.environ['account_url']
     security_results_access_key = os.environ['SecurityAssessmentResultsStorage']
 
-    # start_time = get_last_timestamp(account_url, security_results_access_key)
+    blob_client =  BlobServiceClient.from_connection_string(security_results_access_key)
+
+    container_name = f'timestamp-{uuid.uuid4()}'
+
+    file_name = f'last_timestamp_{action_name}.txt'
+
+    # start_time = get_timestamp(blob_client, container_name, action_name)
     start_time = 1
-    last_timestamp = str(start_time)
+    last_timestamp = start_time
 
     page = 0
-
-    # try:
-    #     SecurityPostureAssessmentResults = get_alerts(
-    #         tenant_name, rule_name, token, str(PAGE_SIZE), str(page * PAGE_SIZE), start_time)
-    # except HTTPError as e:
-    #     logger.error(e) 
 
     results = get_alerts(
         tenant_name, rule_name, token, str(PAGE_SIZE), str(page * PAGE_SIZE), start_time)
@@ -105,7 +106,7 @@ def main(req: func.HttpRequest, msg: func.Out[List[str]] ) -> str:
 
     # put_results(results, bucket, f"{action_name}/{file_name}")
     if count > 0:
-        put_last_timestamp(security_results_access_key, last_timestamp, data['action'])
+        put_timestamp(blob_client, container_name, file_name, last_timestamp)
 
     return f'Got {count} total alerts for the action {action_name}'
 
@@ -140,63 +141,37 @@ def get_alerts(tenant_name, rule_name, token, limit, skip, starttime):
 
     return res.json()['data']
 
-def get_last_timestamp(account_url, credential):
+def get_timestamp(client, container_name, action):
 
+    local_file_name = f'{action}/last_timestamp_{action}.txt'
+
+    # Create a blob client using the local file name as the name for the blob
     try:
-        blob_service_client = BlobClient(account_url=account_url, credential=credential)
-        blob_client = blob_service_client.get_blob_client(container=container_name, blob=local_file_name)
-        # get container and parse out the timestamp
-        ### aws example code ###
-        # s3 = boto3.client("s3")
-        # object_key = f"{action_name}/last_timestamp_{action_name}.txt"
-        # object = s3.get_object(Bucket=bucket, Key=object_key)
-        # timestamp = int(object["Body"].read().strip())
+        blob_client = client.get_blob_client(container=container_name, blob=local_file_name)
+        data = blob_client.download_blob().readall()
+    except ResourceNotFoundError:
+        return 1
 
-    except Exception as e:
-        logger.info(e)
-        timestamp = 1
+    timestamp = int(data.decode())
 
     return timestamp
 
-def put_last_timestamp(connection_string, timestamp, action):
+def put_timestamp(client, container_name, file_name, timestamp):
 
-    logger.info('Executing put_last_timestamp function')
-
-
-    blob_service_client = BlobServiceClient.from_connection_string(connection_string)
-
-    # Create a container where you can upload 
-    # or download blobs
-    container_client = blob_service_client.get_container_client('my_container')
-
+    # Create the container
     try:
-        container_client.create_container()
+        client.create_container(container_name)
+    except ResourceExistsError:
+        print(f"Container {container_name} already exists.")
 
-        logger.info('created container for timestamp')
+    data = BytesIO(f"{int(timestamp)}".encode())
 
-        blob_client = container_client.get_blob_client('my_blob')
+    # Create a blob client using the local file name as the name for the blob
+    blob_client = client.get_blob_client(container=container_name, blob=file_name)
 
-        # Create a file in the local data directory to upload and download
-        local_file_name = f'{action}/last_timestamp_{action}.txt'
+    print(f"Putting timestamp {timestamp}.")
 
-        # Write text to the file
-        file = open(local_file_name, 'w')
-        file.write(timestamp)
-        file.close()
-
-        # blob = BlobServiceClient.from_connection_string(connection_string, logging_enable=True) 
-        # blob_client = blob.get_blob_client(container='my_container', blob=local_file_name)
-        
-        print("\nUploading to Azure Storage as blob:\n\t" + local_file_name)
-
-        # Upload the created file
-        with open(local_file_name, "rb") as data:
-            blob_client.upload_blob(data, blob_type="BlockBlob")
-            logger.info('uploaded new blob')
-        
-
-    except Exception as e:
-        logger.info(e)
+    blob_client.upload_blob(data, overwrite=True)
 
     
 
