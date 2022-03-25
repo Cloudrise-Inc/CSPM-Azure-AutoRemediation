@@ -17,15 +17,32 @@ logger.setLevel(logging.getLevelName(LOG_LEVEL))
 
 # Getting required data from environment variable, raising an error when not configured
 fn_env = {
-    "tenant_name": os.environ["tenant_name"],
-    "token": os.environ["token"],
+    "tenant_name": os.environ["NETSKOPE_FQDN"],
+    "token": os.environ["NETSKOPE_TOKEN"],
     "security_results_access_key": os.environ["DLP_SCAN_RESULT_STORAGE"],
     "timestamp_container": os.environ["TIMESTAMP_CONTAINER"],
-    "action": os.environ["AUTOREMEDIATION_ACTION"],
-    "policies": os.environ["MATCH_POLICIES"],
-    "profiles": os.environ["MATCH_PROFILES"],
-    "rules": os.environ["MATCH_RULES"],
+    "actions": [],
 }
+
+
+def _update_env(fn_env):
+
+    actions = ("delete", "encrypt", "label", "quarantine", "restrict")
+    enabled = []
+    for action in actions:
+        if os.environ.get(f"{action.upper()}_ACTION"):
+            enabled.append(
+                {
+                    "action": action,
+                    "policies": os.environ.get(f"{action.upper()}_MATCH_POLICIES", ""),
+                    "profiles": os.environ.get(f"{action.upper()}_MATCH_PROFILES", ""),
+                    "rules": os.environ.get(f"{action.upper()}_MATCH_RULES", ""),
+                }
+            )
+    fn_env["actions"] = enabled
+
+
+_update_env(fn_env)
 
 
 def main(mytimer: func.TimerRequest):
@@ -34,10 +51,13 @@ def main(mytimer: func.TimerRequest):
     if mytimer.past_due:
         logger.info("The timer is past due!")
 
-    logger.info(f"Scheduled Function Trigger at {utc_timestamp} for action {fn_env['action']}")
+    logger.info(f"Executing Scheduled DLP-Scan alerts gathering function trigger at {utc_timestamp}")
 
-    try:
-        message = fetch_results(fn_env)
-        logger.info(message)
-    except Exception as err:
-        logger.error(f"Error fetching DLP Scan results {err}")
+    for act in fn_env["actions"]:
+        try:
+            action_env = fn_env.copy()
+            action_env.update(act)
+            message = fetch_results(action_env)
+            logger.info(message)
+        except Exception as err:
+            logger.error(f"Error fetching DLP Scan results {err}")

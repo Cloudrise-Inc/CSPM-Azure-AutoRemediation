@@ -16,8 +16,8 @@ logger.setLevel(logging.getLevelName(LOG_LEVEL))
 
 # Getting required data from environment variable, raising an error when not configured
 fn_env = {
-    "tenant_name": os.environ["tenant_name"],
-    "token": os.environ["token"],
+    "tenant_name": os.environ["NETSKOPE_FQDN"],
+    "token": os.environ["NETSKOPE_TOKEN"],
     "security_results_access_key": os.environ["DLP_SCAN_RESULT_STORAGE"],
     "timestamp_container": os.environ["TIMESTAMP_CONTAINER"],
 }

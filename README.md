@@ -1,4 +1,4 @@
-## Flow Diagram
+# Flow Diagram
 
 ![FlowDiagram](./images/FlowDiagram.png)
 
@@ -54,7 +54,7 @@ This function app gets the security assessment violations for the latest Netskop
 
 [Note] We can use Timer Trigger to run the function app as a cron job. Prefer to set a cron per day once or every six hours once or the time set in the instance listing on Netskope UI. Check Timer Trigger binding details in the reference section
 
-### Deployment
+### HTTP Deployment
 
  1) Download the GitHub Repository for Azure Remediator
         a. Click on the desired repository.
@@ -109,9 +109,10 @@ This function app gets the security assessment violations resource id from Queue
 
 ![RemediatorFlowDiagram](./images/RemediatorFlow.png)
 
-### Deployment
+### Remediator Deployment
 
-	Step 1 to 6 same as FetcherForKeyVaultRecoverableHTTP
+ Step 1 to 6 same as FetcherForKeyVaultRecoverableHTTP
+
  7) Configure SecurityAssessmentResultsStorage in Function App the value was Copied connection string from Prerequisites step 1. B
  8) Enable Managed Identity as system-assigned
         Enable System assigned Managed Identity to access other resources in Azure from Function App. (System Assigned Managed Identity is required for Remediator function app to be able to make appropriate changes to the violating resource)

@@ -15,10 +15,10 @@ object_albel = os.environ.get("OBJECT_LABEL", "")
 
 
 def main(msg: func.QueueMessage) -> None:
-    logger.info("Python queue trigger function processed a queue item: %s", msg.get_body().decode("utf-8"))
-    message = msg.get_body().decode("utf-8")
-    url, policy, profile, rule = message.split(",")
+    message = msg.get_body().decode()
+    logger.info(f"Python queue trigger function processed a queue item: {message}")
 
-    cred = CredentialWrapper()
+    # url, policy, profile, rule = message.split(",")
+    # cred = CredentialWrapper()
 
     # TODO: nstantiate container and blob client and apply labels

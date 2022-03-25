@@ -7,7 +7,7 @@ from time import time
 
 from azure.storage.blob import BlobServiceClient
 from azure.core.exceptions import ResourceExistsError, ResourceNotFoundError
-from azure.storage.queue import QueueClient
+from azure.storage.queue import QueueClient, BinaryBase64EncodePolicy
 
 
 PAGE_SIZE = 100
@@ -142,11 +142,11 @@ def put_timestamp(client, container_name, file_name, timestamp):
 
 def put_results(conn_string, results, queue_name):
 
-    client = QueueClient.from_connection_string(conn_string, queue_name)
+    client = QueueClient.from_connection_string(conn_string, queue_name, message_encode_policy=BinaryBase64EncodePolicy())
     try:
         client.create_queue()
     except ResourceExistsError:
         logging.info(f"queue {queue_name} already exists")
 
     for result in results:
-        client.send_message(result)
+        client.send_message(result.encode())
