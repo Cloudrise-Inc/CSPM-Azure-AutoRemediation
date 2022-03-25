@@ -155,3 +155,23 @@ Function App VS Code: <https://docs.microsoft.com/en-us/azure/azure-functions/cr
 Continuous Deployment: <https://docs.microsoft.com/en-us/azure/azure-functions/functions-continuous-deployment>
 
 FunctionApp ARM Template: <https://github.com/Azure/azure-quickstart-templates/tree/master/quickstarts/microsoft.web>
+
+## Development Notes
+
+Currently need to run locally within a terminal window that has had a Managed Identity environment added.
+
+```bash
+source dev_env_creds.sh
+```
+
+See the following on creating and authorizing an identity for local development. This identity needs the same access to the target storage accounts.
+
+- <https://docs.microsoft.com/en-us/azure/developer/java/sdk/identity-service-principal-auth>
+- <https://docs.microsoft.com/en-us/azure/developer/python/configure-local-development-environment?tabs=bash#what-the-create-for-rbac-command-does>
+- <https://docs.microsoft.com/en-us/azure/developer/python/azure-sdk-authenticate-hosted-applications>
+
+```bash
+az ad sp create-for-rbac --name <testname>-local-sp-rbac
+```
+
+Then give that service principal access to the target storage accounts.

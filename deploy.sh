@@ -55,6 +55,10 @@ while [ $appSvcExist == 'false' ] && [ $i -lt 10 ]; do
 done
 echo "[DONE]"
 
+echo "[EXECUTING] Enabling System assigned managed identity"
+az functionapp identity assign -g $RESOURCE_GROUP -n $FUNCTION_APP
+echo "[DONE]"
+
 echo "[EXECUTING] Publishing function code to function application: $FUNCTION_APP"
 func azure functionapp publish $FUNCTION_APP
 echo "[DONE]"
