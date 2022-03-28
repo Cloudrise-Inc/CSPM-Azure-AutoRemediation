@@ -175,3 +175,14 @@ az ad sp create-for-rbac --name <testname>-local-sp-rbac
 ```
 
 Then give that service principal access to the target storage accounts.
+
+```bash
+az login
+az account set --subscription NetskopeSandbox
+python -m venv .venv
+source .venv/bin/activate
+source dev_env_creds.sh
+# From run menu in VSCode Start debugging.
+# This installs requirements into .venv, then ctrl+c to close this once its finished.
+func host start
+```

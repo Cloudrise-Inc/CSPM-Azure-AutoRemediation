@@ -2,7 +2,7 @@
 set -e
 
 read -p "Enter the Azure resource group name: " RESOURCE_GROUP
-read -p "Enter the Azuere function app name: " FUNCTION_APP
+read -p "Enter the Azure function app name: " FUNCTION_APP
 read -p "Enter the Azure location (centralus, eastus, etc.): " LOCATION
 read -p "Enter the API token for the Netskope tenant: " TOKEN
 
@@ -46,7 +46,7 @@ while [ $appSvcExist == 'false' ] && [ $i -lt 10 ]; do
     echo .\r
     sleep 5
     result=`az appservice plan list --query "[?name=='$FUNCTION_APP']"`
-    if [ ${#result} -lt 5]; then
+    if [ ${#result} -lt 5 ]; then
         appSvcExist='false'
     else
         appSvcExist='true'
