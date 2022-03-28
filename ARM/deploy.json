@@ -29,6 +29,188 @@
             "metadata": {
                 "description": "The Netskope tenant API token."
             }
+        },
+        "timestampContainer": {
+            "type": "string",
+            "defaultValue": "dlp-alerts-timestamps",
+            "metadata": {
+                "description": "The azure storage container which houses the remediation cursor timestamps."
+            }
+        },
+        "deleteActionEnable": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Enable the delete Autoremediation action."
+            }
+        },
+        "deleteMatchPolicies": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Apply the delete action to this comma separated list of DLP Policies."
+            }
+        },
+        "deleteMatchProfiles": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Apply the delete action to this comma separated list of DLP Profiles."
+            }
+        },
+        "deleteMatchRules": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Apply the delete action to this comma separated list of DLP Rules."
+            }
+        },
+        "deleteTombstoneContent": {
+            "type": "string",
+            "defaultValue": "This object has been deleted due to security policy.\nPolicy: {policy}\nProfile: {profile}\nRule: {rule}",
+            "metadata": {
+                "description": "The content of the Tombstone txt file dropped in place of the deleted file. The placeholders {policy} {profile} or {rule} within the content will be replaced with the policy profile and rule that matched for the object."
+            }
+        },
+        "encryptActionEnable": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Enable the encrypt Autoremediation action."
+            }
+        },
+        "encryptMatchPolicies": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Apply the encrypt action to this comma separated list of DLP Policies."
+            }
+        },
+        "encryptMatchProfiles": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Apply the encrypt action to this comma separated list of DLP Profiles."
+            }
+        },
+        "encryptMatchRules": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Apply the encrypt action to this comma separated list of DLP Rules."
+            }
+        },
+        "labelActionEnable": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Enable the Label Autoremediation action."
+            }
+        },
+        "labelMatchPolicies": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Apply the label action to this comma separated list of DLP Policies."
+            }
+        },
+        "labelMatchProfiles": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Apply the label action to this comma separated list of DLP Profiles."
+            }
+        },
+        "labelMatchRules": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Apply the label action to this comma separated list of DLP Rules."
+            }
+        },
+        "containerLabel": {
+            "type": "string",
+            "defaultValue": "DLP Alert for Policy: {policy} Profile: {profile} Rule: {rule}",
+            "metadata": {
+                "description": "The container label to attach to the container metadata key is \"DLPScanScanLabel\". The placeholders {policy} {profile} or {rule} within the label will be replaced with the policy profile and rule that matched for the object."
+            }
+        },
+        "blobLabel": {
+            "type": "string",
+            "defaultValue": "DLP Alert for Policy: {policy} Profile: {profile} Rule: {rule}",
+            "metadata": {
+                "description": "The blob label to attach to the blob metadata key is \"DLPScanScanLabel\". The placeholders {policy} {profile} or {rule} within the label will be replaced with the policy profile and rule that matched for the object."
+            }
+        },
+        "quarantineActionEnable": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Enable the quarantine Autoremediation action."
+            }
+        },
+        "quarantineMatchPolicies": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Apply the quarantine action to this comma separated list of DLP Policies."
+            }
+        },
+        "quarantineMatchProfiles": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Apply the quarantine action to this comma separated list of DLP Profiles."
+            }
+        },
+        "quarantineMatchRules": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Apply the quarantine action to this comma separated list of DLP Rules."
+            }
+        },
+        "quarantineContainer": {
+            "type": "string",
+            "defaultValue": "quarantined-blobs",
+            "metadata": {
+                "description": "The name of the quarantine storage container."
+            }
+        },
+        "quarantineTombstoneContent": {
+            "type": "string",
+            "defaultValue": "This object has been quarantined due to security policy.\nPolicy: {policy}\nProfile: {profile}\nRule: {rule}",
+            "metadata": {
+                "description": "The content of the Tombstone txt file dropped in place of the quarantined file. The placeholders {policy} {profile} or {rule} within the content will be replaced with the policy profile and rule that matched for the object."
+            }
+        },
+        "restrictActionEnable": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Enable the restrict Autoremediation action."
+            }
+        },
+        "restrictMatchPolicies": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Apply the restrict action to this comma separated list of DLP Policies."
+            }
+        },
+        "restrictMatchProfiles": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Apply the restrict action to this comma separated list of DLP Profiles."
+            }
+        },
+        "restrictMatchRules": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Apply the restrict action to this comma separated list of DLP Rules."
+            }
         }
     },
     "variables": {
@@ -145,6 +327,110 @@
                         {
                             "name": "NETSKOPE_TOKEN",
                             "value": "[parameters('apiToken')]"
+                        },
+                        {
+                            "name": "TIMESTAMP_CONTAINER",
+                            "value": "[parameters('timestampContainer')]"
+                        },
+                        {
+                            "name": "DELETE_ACTION",
+                            "value": "[parameters('deleteActionEnable')]"
+                        },
+                        {
+                            "name": "DELETE_MATCH_POLICIES",
+                            "value": "[parameters('deleteMatchPolicies')]"
+                        },
+                        {
+                            "name": "DELETE_MATCH_PROFILES",
+                            "value": "[parameters('deleteMatchProfiles')]"
+                        },
+                        {
+                            "name": "DELETE_MATCH_RULES",
+                            "value": "[parameters('deleteMatchRules')]"
+                        },
+                        {
+                            "name": "DELETE_TOMBSTONE_CONTENT",
+                            "value": "[parameters('deleteTombstoneContent')]"
+                        },
+                        {
+                            "name": "ENCRYPT_ACTION",
+                            "value": "[parameters('encryptActionEnable')]"
+                        },
+                        {
+                            "name": "ENCRYPT_MATCH_POLICIES",
+                            "value": "[parameters('encryptMatchPolicies')]"
+                        },
+                        {
+                            "name": "ENCRYPT_MATCH_PROFILES",
+                            "value": "[parameters('encryptMatchProfiles')]"
+                        },
+                        {
+                            "name": "ENCRYPT_MATCH_RULES",
+                            "value": "[parameters('encryptMatchRules')]"
+                        },
+                        {
+                            "name": "LABEL_ACTION",
+                            "value": "[parameters('labelActionEnable')]"
+                        },
+                        {
+                            "name": "LABEL_MATCH_POLICIES",
+                            "value": "[parameters('labelMatchPolicies')]"
+                        },
+                        {
+                            "name": "LABEL_MATCH_PROFILES",
+                            "value": "[parameters('labelMatchProfiles')]"
+                        },
+                        {
+                            "name": "LABEL_MATCH_RULES",
+                            "value": "[parameters('labelMatchRules')]"
+                        },
+                        {
+                            "name": "CONTAINER_LABEL",
+                            "value": "[parameters('containerLabel')]"
+                        },
+                        {
+                            "name": "BLOB_LABEL",
+                            "value": "[parameters('blobLabel')]"
+                        },
+                        {
+                            "name": "QUARANTINE_ACTION",
+                            "value": "[parameters('quarantineActionEnable')]"
+                        },
+                        {
+                            "name": "QUARANTINE_MATCH_POLICIES",
+                            "value": "[parameters('quarantineMatchPolicies')]"
+                        },
+                        {
+                            "name": "QUARANTINE_MATCH_PROFILES",
+                            "value": "[parameters('quarantineMatchProfiles')]"
+                        },
+                        {
+                            "name": "QUARANTINE_MATCH_RULES",
+                            "value": "[parameters('quarantineMatchRules')]"
+                        },
+                        {
+                            "name": "QUARANTINE_CONTAINER",
+                            "value": "[parameters('quarantineContainer')]"
+                        },
+                        {
+                            "name": "QUARANTINE_TOMBSTONE_CONTENT",
+                            "value": "[parameters('quarantineTombstoneContent')]"
+                        },
+                        {
+                            "name": "RESTRICT_ACTION",
+                            "value": "[parameters('restrictActionEnable')]"
+                        },
+                        {
+                            "name": "RESTRICT_MATCH_POLICIES",
+                            "value": "[parameters('restrictMatchPolicies')]"
+                        },
+                        {
+                            "name": "RESTRICT_MATCH_PROFILES",
+                            "value": "[parameters('restrictMatchProfiles')]"
+                        },
+                        {
+                            "name": "RESTRICT_MATCH_RULES",
+                            "value": "[parameters('restrictMatchRules')]"
                         }
                     ]
                 }
