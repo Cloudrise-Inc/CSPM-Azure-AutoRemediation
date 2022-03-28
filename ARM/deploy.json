@@ -429,7 +429,7 @@
                             "value": "[parameters('restrictMatchProfiles')]"
                         },
                         {
-                            "name": "ENCRYPT_MATCH_RULES",
+                            "name": "RESTRICT_MATCH_RULES",
                             "value": "[parameters('restrictMatchRules')]"
                         }
                     ]
