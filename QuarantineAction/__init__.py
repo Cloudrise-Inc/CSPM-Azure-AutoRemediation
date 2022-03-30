@@ -1,6 +1,7 @@
 from io import BytesIO
 import logging
 import os
+from datetime import datetime
 
 from azure.core.exceptions import ResourceExistsError, ResourceNotFoundError
 import azure.functions as func
@@ -64,7 +65,8 @@ def write_tombstone(resource_id, policy, profile, rule):
 def move_artifact_to_quarantine(resource_id):
     cred = DefaultAzureCredential()
 
-    data, destination = _download_quarantine_file(resource_id, cred)
+    data, storage_acct, path = _download_quarantine_file(resource_id, cred)
+    destination = _generate_target_path(storage_acct, path)
     _upload_to_quarantine(data, destination)
 
     del_client = BlobClient.from_blob_url(resource_id, credential=cred)
@@ -74,15 +76,25 @@ def move_artifact_to_quarantine(resource_id):
 def _download_quarantine_file(resource_id, credential):
     storage_acct = resource_id.strip("https://").split("/")[0].split(".")[0]
     path = resource_id.strip("https://").split("/", 1)[1]
-    target_filepath = f"{storage_acct}/{path}"
     data = BytesIO()
     try:
         logger.info(f"Downloading file from: {resource_id} to quarantine")
         download_blob_from_url(blob_url=resource_id, output=data, credential=credential)
-        return data, target_filepath
+        return data, storage_acct, path
     except ResourceNotFoundError as err:
         logger.warning(f"Could not find source artifact: {err}")
         raise
+
+
+def _generate_target_path(storage_account, path):
+    dirname = os.path.dirname(path)
+    file = os.path.basename(path)
+    fl = file.rsplit(".", 1)
+    if len(fl) == 1:
+        file = f"{fl[0]}_{datetime.now().isoformat()}"
+    elif len(fl) == 2:
+        file = f"{fl[0]}_{datetime.now().isoformat()}.{fl[1]}"
+    return f"{storage_account}/{dirname}/{file}"
 
 
 def _upload_to_quarantine(data, destination):
