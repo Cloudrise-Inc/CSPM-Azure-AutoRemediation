@@ -3,7 +3,7 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "appName": {
-            "value": "dlp-scan-fetcher"
+            "value": "dlp-scan-autoremediation"
         },
         "netskopeFQDN": {
             "value": "cloudrise-dev.goskope.com"

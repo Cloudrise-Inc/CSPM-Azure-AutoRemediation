@@ -72,34 +72,6 @@
                 "description": "The content of the Tombstone txt file dropped in place of the deleted file. The placeholders {policy} {profile} or {rule} within the content will be replaced with the policy profile and rule that matched for the object."
             }
         },
-        "encryptActionEnable": {
-            "type": "bool",
-            "defaultValue": false,
-            "metadata": {
-                "description": "Enable the encrypt Autoremediation action."
-            }
-        },
-        "encryptMatchPolicies": {
-            "type": "string",
-            "defaultValue": "",
-            "metadata": {
-                "description": "Apply the encrypt action to this comma separated list of DLP Policies."
-            }
-        },
-        "encryptMatchProfiles": {
-            "type": "string",
-            "defaultValue": "",
-            "metadata": {
-                "description": "Apply the encrypt action to this comma separated list of DLP Profiles."
-            }
-        },
-        "encryptMatchRules": {
-            "type": "string",
-            "defaultValue": "",
-            "metadata": {
-                "description": "Apply the encrypt action to this comma separated list of DLP Rules."
-            }
-        },
         "labelActionEnable": {
             "type": "bool",
             "defaultValue": false,
@@ -182,34 +154,6 @@
             "defaultValue": "This object has been quarantined due to security policy.\nPolicy: {policy}\nProfile: {profile}\nRule: {rule}",
             "metadata": {
                 "description": "The content of the Tombstone txt file dropped in place of the quarantined file. The placeholders {policy} {profile} or {rule} within the content will be replaced with the policy profile and rule that matched for the object."
-            }
-        },
-        "restrictActionEnable": {
-            "type": "bool",
-            "defaultValue": false,
-            "metadata": {
-                "description": "Enable the restrict Autoremediation action."
-            }
-        },
-        "restrictMatchPolicies": {
-            "type": "string",
-            "defaultValue": "",
-            "metadata": {
-                "description": "Apply the restrict action to this comma separated list of DLP Policies."
-            }
-        },
-        "restrictMatchProfiles": {
-            "type": "string",
-            "defaultValue": "",
-            "metadata": {
-                "description": "Apply the restrict action to this comma separated list of DLP Profiles."
-            }
-        },
-        "restrictMatchRules": {
-            "type": "string",
-            "defaultValue": "",
-            "metadata": {
-                "description": "Apply the restrict action to this comma separated list of DLP Rules."
             }
         }
     },
@@ -353,22 +297,6 @@
                             "value": "[parameters('deleteTombstoneContent')]"
                         },
                         {
-                            "name": "ENCRYPT_ACTION",
-                            "value": "[parameters('encryptActionEnable')]"
-                        },
-                        {
-                            "name": "ENCRYPT_MATCH_POLICIES",
-                            "value": "[parameters('encryptMatchPolicies')]"
-                        },
-                        {
-                            "name": "ENCRYPT_MATCH_PROFILES",
-                            "value": "[parameters('encryptMatchProfiles')]"
-                        },
-                        {
-                            "name": "ENCRYPT_MATCH_RULES",
-                            "value": "[parameters('encryptMatchRules')]"
-                        },
-                        {
                             "name": "LABEL_ACTION",
                             "value": "[parameters('labelActionEnable')]"
                         },
@@ -415,22 +343,6 @@
                         {
                             "name": "QUARANTINE_TOMBSTONE_CONTENT",
                             "value": "[parameters('quarantineTombstoneContent')]"
-                        },
-                        {
-                            "name": "RESTRICT_ACTION",
-                            "value": "[parameters('restrictActionEnable')]"
-                        },
-                        {
-                            "name": "RESTRICT_MATCH_POLICIES",
-                            "value": "[parameters('restrictMatchPolicies')]"
-                        },
-                        {
-                            "name": "RESTRICT_MATCH_PROFILES",
-                            "value": "[parameters('restrictMatchProfiles')]"
-                        },
-                        {
-                            "name": "RESTRICT_MATCH_RULES",
-                            "value": "[parameters('restrictMatchRules')]"
                         }
                     ]
                 }
