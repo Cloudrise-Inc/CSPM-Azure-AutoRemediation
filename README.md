@@ -1,41 +1,66 @@
-# Flow Diagram
+# DLP-Scan-Azure-AutoRemediation – Public Cloud Infrastructure Data Protection Auto-remediation framework for Microsoft Azure
+
+## Overview
+
+This solution is an auto-remediation framework for Netskope Public Cloud Data Protection. Automated actions are taken for DLP Storage Scanning (DLP Scan) policy alerts found for configured Microsoft Azure Public Cloud Infrastructure accounts.
+
+Scan public cloud storage services across AWS, Microsoft Azure, and Google Cloud for sensitive content, then automatically take remediative actions using this framework. The framework can be extended and customized for your specific data security and process requirements.
+
+### Flow Diagram
 
 ![FlowDiagram](./images/FlowDiagram.png)
 
-## Prerequisites
+### Advanced DLP for Public Cloud Storage Services
 
-### 1. Azure Storage Account For Netskope Security Assessment Result Store
+- Sensitive data discovery: Find, classify, and protect sensitive data stored in public cloud storage services with Netskope’s industry-leading pattern and profile capabilities.
+- Malware protection: Discover malware hidden in storage services and prevent it from spreading across your cloud environments.
+- Customizable policies: Leverage existing DLP policies or craft new ones to optimize alerting workflows and prevent false positives.
+- Back in time scanning: Discover sensitive data and malware already stored in existing public cloud storage services.
 
-This storage account used for NetskopeResultFetcher enqueue the resource id for the rule and Remediator dequeues the resource id to remediate the security violation.
+Netskope Auto-remediation solution for Microsoft Azure deploys the set of Azure functions that query the above Netskope API on the scheduled intervals, and mitigates supported violations automatically.
+You can deploy the framework as is or customize it to mitigate other security violations and to meet your specific organization’s specific security requirements.
 
-#### A. Create Storage Account
+## Actions
 
-Azure CLI:
+The DLP Scan auto-remediation framework supports a number of auto-remediation actions for data identified by Netskope's DLP Storage Scanning functionality. Each action can be enabled for a set of DLP policies, profiles and rules. When enabling Netskope Public Cloud Data Protection within Netskope an API Data Protection policy is created which is made up of profiles and rules. When installing this framework via the ARM template and deploy script each action can be enabled or disabled via the ARM parameters file, and can be tuned via parameters to take remediative action at the policy, profile or rule level for one or more policies, profiles, or rules. The specific auto-remediations are described in the next sections.
 
-```sh
-az storage account create --name <STORAGE_NAME> --sku Standard_LRS
+### Delete Objects
+
+The delete objects auto-remediation action will remove identified data objects from the Azure Storage container where they are found. The automation drops a user configurable tombstone file in place of the removed content to identify content that has been deleted by the policy. The tombstone file content can be changed by the user via parameter, and supports template substitutions allowing the identified policy, profile, and rule for the given alert.
+
+#### Default Tombstone Content
+
+```python
+"This object has been deleted due to security policy.\nPolicy: {policy}\nProfile: {profile}\nRule: {rule}"
 ```
 
-Names must contain three to 24 characters numbers and lowercase letters only. Standard_LRS specifies a general-purpose account, which is supported by Functions. Ref: [Create a storage account](https://docs.microsoft.com/en-us/azure/storage/common/storage-account-create?tabs=azure-portal)
+### Label Container and Blob Objects
 
-#### B. Copy the Connection String for setup in function app Configuration to grant access to the storage account
+The label bucket and object auto-remediation will attach metadata to the identified blobs and/or the containers containing the blobs, to allow for other scripts and functionality to process labeled items. The automation will add metadata to the container, the blob, or both container and blob. The tag content is user-configurable via parameter and supports substitutions for the policy profile and rule that triggered the alert.
 
-Azure CLI:
+#### Default Tag Value: (Bucket and Object)
 
-```sh
-az storage account show-connection-string --name MyStorageAccount --resource-group MyResourceGroup --subscription MySubscription
+```python
+"DLP Alert {policy} {profile} {rule}"
 ```
 
-Azure Portal:
+### Quarantine Objects
 
-- In the Azure portal, open Storage Explorer
-- Under Settings, select Access keys
-- Click Show Keys
-- Copy the entire connection string. Find the Connection string value under key1 or key2, and click the Copy button to copy the connection string.
+The quarantine objects auto-remediation action will move identified data objects into a quarantine container within the security resource group from the Azure Storage containers where they are found. The automation drops a user-configurable tombstone file in place of the removed content to identify content that has been deleted by the policy. The tombstone file content can be changed by the user via parameter, and supports template substitutions allowing the identified policy, profile and rule for the given alert.
 
-Ref: [View Storage Account Access Key](https://docs.microsoft.com/en-us/azure/storage/common/storage-account-keys-manage?tabs=azure-portal#view-account-access-keys)
+#### Default Quarantine Tombstone Content
 
-### Configure your environment to deploy Azure Function from VS Code
+```python
+"This object has been quarantined due to security policy.\nPolicy: {policy}\nProfile: {profile}\nRule: {rule}"
+```
+
+## Deployment
+
+Deployment of the storage scanning autoremediations involves running a command line script which configures a resource group and associated function app, and then publishes fetcher and remediation functions to the newly created function application. Configuration of the function app is primarily handled via an ARM parameters json file.
+
+### Prerequisites
+
+#### Configure your environment to deploy Azure Function from VS Code
 
 Make sure you have the following requirements in place:
 
@@ -46,97 +71,72 @@ Make sure you have the following requirements in place:
 - The [Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) for Visual Studio Code.
 - The [Azure Functions extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions) for Visual Studio Code
 
-## FetcherForKeyVaultRecoverableHTTP
+#### NOTE: Running the deployment scripts will require an Azure Active directory credential that can create Azure resources for the required subscriptsions
 
-This function app gets the security assessment violations for the latest Netskope CSA scan from the customer tenant and enqueues the failing resource id to the configured Queue Storage Account
+### Deploy 1. Update ARM template parameters
 
-![FetcherFlowDiagram](./images/FetcherFlow.png)
+Application configuration is managed by adding parameters to [deploy.parameters.json](./ARM/deploy.parameters.json). The list of possible parameters is in [deploy.json](./ARM/deploy.json)
 
-[Note] We can use Timer Trigger to run the function app as a cron job. Prefer to set a cron per day once or every six hours once or the time set in the instance listing on Netskope UI. Check Timer Trigger binding details in the reference section
+Each of the actions described above can be enabled, and then Netskope API Protection policies, profiles and rules can be listed for each action to perform specific remediations for each alert within a given set of policies, dlp profiles or rules.
 
-### HTTP Deployment
+### Deploy 2. Run the deployment shell script
 
- 1) Download the GitHub Repository for Azure Remediator
-        a. Click on the desired repository.
-        b. Navigate to the “<>Code” tab.
-        c. Click on the “Code” button on the right. A dropdown should appear.
-        d. In the “Clone” menu, under the “HTTPS” tab, click on “Download ZIP”
- 2) Unzip the Downloaded folder using `unzip <filename.zip>`
- 3) change the directory to unzipped folder `cd unzip folder`
- 4) Open VS Code by using `code .`
- 5) Choose the Azure icon in the Activity bar, then in the Azure: Functions area, select the Local Project. Click Initialize Project for Use with VS Code...
- 6) Deploy the Code to Function App: Choose the Azure icon in the Activity bar, then in the Azure: Functions area, choose the Deploy to function app... button.
-     a. Provide the following information at the prompts:
-            - Select folder: Choose a folder from your workspace or browse to one that contains your function app. You won't see this if you already have a valid function app opened.
-            - Select subscription: Choose the subscription to use. You won't see this if you only have one subscription.
-            - Select Function App in Azure: Choose + Create new Function App. (Don't choose the Advanced option, which isn't covered in this article.)
-            - Enter a globally unique name for the function app: Type a name that is valid in a URL path. The name you type is validated to make sure that it's unique in Azure Functions.
-            - Select a runtime: Choose the version of Python you've been running on locally. You can use the python --version command to check your version.
-            - Select a location for new resources: For better performance, choose a region near you.
-        b. The extension shows the status of individual resources as they are being created in Azure in the notification area.
-        c. When completed, the following Azure resources are created in your subscription, using names based on your function app name:
-            - A resource group, which is a logical container for related resources.
-            - A standard Azure Storage account, which maintains state and other information about your projects.
-            - A consumption plan, which defines the underlying host for your serverless function app.
-            - A function app, which provides the environment for executing your function code. A function app lets you group functions as a logical unit for easier management, deployment, and sharing of resources within the same hosting plan.
-            - An Application Insights instance connected to the function app, which tracks usage of your serverless function.
-        d. A notification is displayed after your function app is created and the deployment package is applied.
-            - Tip: By default, the Azure resources required by your function app are created based on the function app name you provide. By default, they are also created in the same new resource group with the function app. If you want to either customize the names of these resources or reuse existing resources, you need to instead publish the project with advanced create options.
-        e. Select View Output in this notification to view the creation and deployment results, including the Azure resources that you created. If you miss the notification, select the bell icon in the lower right corner to see it again.
- 7) Configure SecurityAssessmentResultsStorage, tenant_name, token, rule_name in Function App.
-        Values for the Configuration
-     a) SecurityAssessmentResultsStorage
-         The Copied connection string from Prerequisites step 1.B
-     b) Netskope Rest API Token
-            Netskope REST APIs use an auth token to make authorized calls to the API. Netskope REST APIs provide access to resources via URI paths. The token must be used in every REST API call for the tenant. The token can be generated or revoked in the Netskope UI by going to Settings > Tools > Rest API v1.
-     c) NetskopeTenantFQDN
-            Your Netskope tenant FQDN. For example, myorg.goskope.com
-     d) Rule Name
-            The security assessment rule. For example, Ensure the key vault is recoverable
-        The Application settings tab maintains settings that are used by your function app. You must select Show values to see the values in the portal. To add a setting in the portal, select New application setting and add the new key-value pair
+To deploy the Azure remediation and fetcher functions run the [deploy.sh](./deploy.sh) bash script. It will ask you to provide names for the resource group, function application name, Azure installation region and your netskope API access token for your netskope tenant.
 
-![InitializeProjectForVSCode](./images/InitializeProjectForVSCode.png)
+This script takes a bit of time to complete, but once it finished. The Function app and associated functions will be deployed within the mew resource group.
 
-![DeployFuntionApp](./images/DeployFunctionApp.png)
+```bash
+$> bash deploy.sh
+```
 
-![FetcherConfigure](./images/FetcherConfigure.png)
+### Deploy 3. Assign Roles for the System Assigned Managed Identity
 
-![FetcherConfiguration](./images/FetcherConfiguration.png)
+In order for the Auto-remediation functions within the Function app to perform actions on the containers and blobs within the scanned storage accountes. A role must be assigned within each target storage account for the Function App's security principal. This can be done in a number of ways. A bash script [assign_security_identity.sh](./assign_security_identity.sh) is included in this framework.
 
-## RemediatorForKeyVaultRecoverable
+The `assign_security_identity.sh` script can be run once for each storage account that should be affected by the auto-remediations. The script will ask for the security function app name, and the target storage account details (subscription name, resource group, and storage account).
 
-This function app gets the security assessment violations resource id from Queue Storage Account and remediates the security assessment violation for the resource based on resource id.
+```bash
+$> bash assign_security_identity.sh
+```
 
-![RemediatorFlowDiagram](./images/RemediatorFlow.png)
+## Components
 
-### Remediator Deployment
+### HTTPFetcher
 
- Step 1 to 6 same as FetcherForKeyVaultRecoverableHTTP
+The HttpFetcher function will fetch alerts for an Auto-remediation action and process them into the remediation actions Message Queue. The HttpFetcher provides a way to trigger the results processing from outside of the Azure system. The function takes a request body which includes the following parameters
 
- 7) Configure SecurityAssessmentResultsStorage in Function App the value was Copied connection string from Prerequisites step 1. B
- 8) Enable Managed Identity as system-assigned
-        Enable System assigned Managed Identity to access other resources in Azure from Function App. (System Assigned Managed Identity is required for Remediator function app to be able to make appropriate changes to the violating resource)
-            a. In the function app, navigate to Platform features. For other app types, scroll down to the Settings group in the left navigation.
-            b. Select Identity.
-            c. Within the System assigned tab, switch Status to On. Click Save.
-    9) Add Role assignment for function app managed identity with appropriate permission level to the resources for the proper remediation for all the violation resources.
-        a. Navigate to the desired resource on which you want to modify access control. In this example, we are giving Azure virtual machine access to a storage account, so we navigate to the storage account.
-        b. Select Access control (IAM).
-        c. Select Add > Add role assignment to open the Add role assignment page.
-        d. Select the role and managed identity. For detailed steps, see [Assign Azure roles using the Azure portal](https://docs.microsoft.com/en-us/azure/role-based-access-control/role-assignments-portal).
+![HttpFetcher](./images/HttpTrigger.png)
 
-![SystemAssignedManagedIdentity](./images/SystemAssignedManagedIdentity.png)
+```json
+{
+    "action": "label",
+    "policies": "policy1, policy2",
+    "profiles": "profile1, profile2",
+    "rules": "rule1"
+}
+```
 
-[Note]  Queue name for Fetcher and Remediator needs to be the same in both function.json files in the Function. Attributes are not supported by Python. Whenever new Funtion App creation please change the QueueName in function.json
-![BindingsFetcherandRemediator](./images/BindingsFetcherandRemediator.png)
+The policy profile and rule fields include the Netskope DLP policy, profile and rule alerts that the autoremediation will execute upon. The action field can contain "delete", "label," or "quarantine" and will cause that autoremediation to be applied for the given policies, profiles and rules.
 
-TODO: ARM Deployment
+### TimerFetcher
+
+The TimerFetcher function will fetch alerts for an Auto-remediation action and process them into the remediation actions Message Queue, on a scheduled trigger. The TimerFetcher uses the Parameters defined within the FunctionApp parameters to gather alert results and perform the associated Autoremediation actions based on the configuration.
+
+![TimerFetcher](./images/TimerTrigger.png)
+
+Each Autoremediation action has an associated enable parameter and match parameters for dlp policies, profiles, and rules. The enabled autoremediation will be made on the discovered DLP artifact when the alert policy, profile or rule matches the configured set.
+
+![FunctionAppConfig](./images/FunctionAppConfig.png)
+
+### Action Functions
+
+Each remediation action is triggered by an Azure message queue. When the Fetcher places an alert into the queue the remediation action is executed. The function executes with the service principal assigned my Azure for the security resource group. In order to make changes to the target storage accounts, containers, and blobs, the security principal for the function app needs to be assigned a role that allows at least "Storage Blob Data Contributor" access. This is the function that the `assign_security_identity.sh` script performs.
+
+![ActionFunction](./images/ActionFunction.png)
 
 ### Reference
 
 Netskope REST API Token: <https://docs.netskope.com/en/netskope-platform-rest-apis.html>
-
-Netskope endpoint for security assessment violation: <https://docs.netskope.com/en/view-security-assessment-violations.html>
 
 Function App: <https://docs.microsoft.com/en-us/azure/azure-functions/>
 
@@ -155,34 +155,3 @@ Function App VS Code: <https://docs.microsoft.com/en-us/azure/azure-functions/cr
 Continuous Deployment: <https://docs.microsoft.com/en-us/azure/azure-functions/functions-continuous-deployment>
 
 FunctionApp ARM Template: <https://github.com/Azure/azure-quickstart-templates/tree/master/quickstarts/microsoft.web>
-
-## Development Notes
-
-Currently need to run locally within a terminal window that has had a Managed Identity environment added.
-
-```bash
-source dev_env_creds.sh
-```
-
-See the following on creating and authorizing an identity for local development. This identity needs the same access to the target storage accounts.
-
-- <https://docs.microsoft.com/en-us/azure/developer/java/sdk/identity-service-principal-auth>
-- <https://docs.microsoft.com/en-us/azure/developer/python/configure-local-development-environment?tabs=bash#what-the-create-for-rbac-command-does>
-- <https://docs.microsoft.com/en-us/azure/developer/python/azure-sdk-authenticate-hosted-applications>
-
-```bash
-az ad sp create-for-rbac --name <testname>-local-sp-rbac
-```
-
-Then give that service principal access to the target storage accounts.
-
-```bash
-az login
-az account set --subscription NetskopeSandbox
-python -m venv .venv
-source .venv/bin/activate
-source dev_env_creds.sh
-# From run menu in VSCode Start debugging.
-# This installs requirements into .venv, then ctrl+c to close this once its finished.
-func host start
-```
