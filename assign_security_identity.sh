@@ -2,9 +2,9 @@
 set -e
 
 read -p "Enter the Azure security function app name: " FUNCTION_APP
-read -p "Enter the Azure subscription name: " SUBSCRIPTION
-read -p "Enter the Azure resource group name: " RESOURCE_GROUP
-read -p "Enter the Azure storage account: " STORAGE_ACCOUNT
+read -p "Enter the target Azure subscription name: " SUBSCRIPTION
+read -p "Enter the target Azure resource group name: " RESOURCE_GROUP
+read -p "Enter the target Azure storage account: " STORAGE_ACCOUNT
 
 SP=`az account subscription list --query "[?displayName=='$SUBSCRIPTION'].subscriptionId | [0]"`
 SP=`sed -e 's/^"//' -e 's/"$//' <<<"$SP"`
